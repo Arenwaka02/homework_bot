@@ -1,11 +1,22 @@
-...
+import os
+import logging
+from telegram import Bot
+import requests
+from dotenv import load_dotenv
+import datetime
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s, %(levelname)s, %(message)s'
+)
 
 load_dotenv()
 
 
-PRACTICUM_TOKEN = ...
-TELEGRAM_TOKEN = ...
-TELEGRAM_CHAT_ID = ...
+PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
@@ -18,9 +29,10 @@ HOMEWORK_VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
+from_date = 0
 
 def check_tokens():
-    ...
+    return([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def send_message(bot, message):
@@ -43,17 +55,11 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-
-    ...
-
+    logging.debug('Бот работает')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
-
-    ...
-
     while True:
         try:
-
             ...
 
         except Exception as error:
