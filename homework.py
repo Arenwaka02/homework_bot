@@ -27,6 +27,7 @@ HOMEWORK_VERDICTS = {
 }
 
 current_timestamp = 1681707645
+timestamp = 1681707645
 
 
 def check_tokens():
@@ -57,22 +58,20 @@ def send_message(bot, message):
 def get_api_answer(timestamp):
     """Делает запрос к единственному эндпоинту API-сервиса."""
     headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-    payload = {'from_date': current_timestamp}
+    params = {'from_date': timestamp}
     try:
         response = requests.get(
-            ENDPOINT, headers=headers, params=payload)
+            ENDPOINT, headers=headers, params=params)
         logging.info('Запрос отправлен.')
-        if response.status_code != 200:
-            report = ('Проблема с API')
-            logging.error(report)
+        if response.status_code != HTTPStatus.OK:
+            raise ConnectionError('Нету соеденения с сервером.')
+        if not isinstance(response.json(), dict):
+            raise TypeError('Не словарь')
+        else:
+            logging.info('Ответ от api ---- 200')
+            return response.json()
     except Exception as error:
         raise Exception(f'Ошибка {error}')
-    if response.status_code == HTTPStatus.OK:
-        logging.info('Ответ получен.')
-        return response.json()
-    elif response.status_code == HTTPStatus.NOT_FOUND:
-        logging.info('Ответ ne получен.')
-    
 
 
 def check_response(response):
