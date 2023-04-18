@@ -77,20 +77,31 @@ def get_api_answer(timestamp):
 def check_response(response):
     """Проверяет ответ API на соответствие документации."""
     logging.debug('Начало проверки')
-
+    if not isinstance(response, dict):
+        raise TypeError('Ошибка в ответе Api')
+    if 'homeworks' not in response or 'current_date' not in response:
+        raise TypeError('Пустой ответ')
+    homework = response.get('homeworks')
+    if not isinstance(homework, list):
+        raise TypeError('Не являтся списком')
 
 def parse_status(homework):
     """Извлекает из информации о конкретной домашней работе статус этой работы."""
-    ...
-
-    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+    if 'homework_name' not in homework:
+        raise KeyError('Ошибка в получении имени')
+    homework_name = homework.get('homework_name')
+    homework_status = homework.get('status')
+    if homework_status not in HOMEWORK_VERDICTS:
+        raise ValueError('Такого статуса в я нету')
+    homework_name=homework_name
+    verdict=HOMEWORK_VERDICTS[homework_status]
+    return(f'Изменился статус проверки работы "{homework_name}". {verdict}')
 
 
 def main():
     """Основная логика работы бота."""
     logging.debug('Бот работает')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = 1681707645 # Unix Timestamp.
     current_report = {
         'name': '',
         'output': ''
