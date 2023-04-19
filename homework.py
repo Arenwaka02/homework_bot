@@ -52,10 +52,11 @@ def send_message(bot, message):
             chat_id=TELEGRAM_CHAT_ID,
             text=message,
         )
-        if not message:
-            raise telegram.TelegramError('Не отправленооооооооооо')
     except telegram.TelegramError as error:
         logging.error(f'Сообщение отправлено {error}')
+    else:
+        logging.debug('Сообщение отправлено')
+    
 
 
 def get_api_answer(timestamp):
@@ -119,8 +120,11 @@ def main():
                     send_message(bot, message)
                     prev_report = current_report.copy()
                     current_report[response.get('homework_name')] = response.get('status')
+                else:
+                    logging.debug('Статус не поменялся')
         except Exception as error:
-            logging.error(f'Ошибка в работе {error}')
+            message = f'Ошибка в работе {error}'
+            logging.error(message)
         finally:
             time.sleep(RETRY_PERIOD)  
 
