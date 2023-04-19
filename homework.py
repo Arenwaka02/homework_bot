@@ -48,10 +48,12 @@ def send_message(bot, message):
     """Отправляет сообщение в Telegram чат."""
     try:
         logging.info('Начало отправки')
-        bot.send_message(
+        message = bot.send_message(
             chat_id=TELEGRAM_CHAT_ID,
             text=message,
         )
+        if not message:
+            raise telegram.TelegramError('Не отправленооооооооооо')
     except telegram.TelegramError as error:
         logging.error(f'Сообщение отправлено {error}')
 
