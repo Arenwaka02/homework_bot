@@ -3,6 +3,7 @@ import os
 import sys
 from datetime import time
 from http import HTTPStatus
+import time
 
 import requests
 import telegram
@@ -102,39 +103,24 @@ def main():
     """Основная логика работы бота."""
     logging.debug('Бот работает')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_report = {
-        'name': '',
-        'output': ''
-    }
-    prev_report = current_report.copy()
+    current_timestamp = int(time.time())
+    current_report = {}
+    prev_report = {}
     while True:
         try:
             response = get_api_answer(current_timestamp)
-            current_timestamp = response.get(
-                'current_data', current_timestamp)
-            homeworks = check_response(response)
-            if homeworks:
-                homework = homeworks[0]
-                current_report['name'] = homework.get('homework_name')
-                current_report['output'] = homework.get('status')
-            else:
-                current_report['output'] = 'НОВЫЙ РАБОТ НЕТ.'
-            if current_report != prev_report:
-                message = f' {current_report["name"]}, {current_report["output"]}'
-                send_message(bot, message)
-                prev_report = current_report.copy()
-            else:
-                logging.debug('Статус не изменился')
+            homework = check_response(response)[0]
+            if homework:
+                message = parse_status(homework)
+                current_report[response.get('homework_name')] = response.get('status')
+                if current_report != prev_report:
+                    send_message(bot, message)
+                    prev_report = current_report.copy()
+                    current_report[response.get('homework_name')] = response.get('status')
         except Exception as error:
-            message = f'Сбой в работе программы: {error}'
-            current_report['output'] = message
-            logging.error(message)
-            if current_report != prev_report:
-                message = f' {current_report["name"]}, {current_report["output"]}'
-                send_message(bot, message)
-                prev_report = current_report.copy()
+            logging.error(f'Ошибка в работе {error}')
         finally:
-            time.sleep(RETRY_PERIOD)
+            time.sleep(RETRY_PERIOD)  
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
