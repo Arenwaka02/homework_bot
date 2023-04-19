@@ -1,14 +1,12 @@
 import logging
 import os
 import sys
-from datetime import time
 from http import HTTPStatus
 import time
 
 import requests
 import telegram
 from dotenv import load_dotenv
-from telegram import Bot
 
 load_dotenv()
 
@@ -56,7 +54,6 @@ def send_message(bot, message):
         logging.error(f'Сообщение отправлено {error}')
     else:
         logging.debug('Сообщение отправлено')
-    
 
 
 def get_api_answer(timestamp):
@@ -89,16 +86,17 @@ def check_response(response):
     if not isinstance(homework, list):
         raise TypeError('Не являтся списком')
 
+
 def parse_status(homework):
-    """Извлекает из информации о конкретной домашней работе статус этой работы."""
+    """Извлекает из информации о конкретной домашней работе статус."""
     if 'homework_name' not in homework:
         raise KeyError('Ошибка в получении имени')
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     if homework_status not in HOMEWORK_VERDICTS:
         raise ValueError('Такого статуса в я нету')
-    homework_name=homework_name
-    verdict=HOMEWORK_VERDICTS[homework_status]
+    homework_name = homework_name
+    verdict = HOMEWORK_VERDICTS[homework_status]
     return(f'Изменился статус проверки работы "{homework_name}". {verdict}')
 
 
@@ -115,18 +113,21 @@ def main():
             homework = check_response(response)[0]
             if homework:
                 message = parse_status(homework)
-                current_report[response.get('homework_name')] = response.get('status')
+                current_report[
+                    response.get('homework_name')] = response.get('status')
                 if current_report != prev_report:
                     send_message(bot, message)
                     prev_report = current_report.copy()
-                    current_report[response.get('homework_name')] = response.get('status')
+                    current_report[
+                        response.get('homework_name')] = response.get('status')
                 else:
                     logging.debug('Статус не поменялся')
         except Exception as error:
             message = f'Ошибка в работе {error}'
             logging.error(message)
         finally:
-            time.sleep(RETRY_PERIOD)  
+            time.sleep(RETRY_PERIOD)
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
