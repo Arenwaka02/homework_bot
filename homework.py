@@ -36,10 +36,7 @@ def check_tokens():
         'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
         'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
     }
-    for name, token in TOKEN.items():
-        if token is None:
-            logging.warning(f'Переменной {name} нету)')
-            sys.exit()
+    return all([TELEGRAM_TOKEN, PRACTICUM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def send_message(bot, message):
@@ -95,13 +92,19 @@ def parse_status(homework):
     homework_status = homework.get('status')
     if homework_status not in HOMEWORK_VERDICTS:
         raise ValueError('Такого статуса в я нету')
-    homework_name = homework_name
-    verdict = HOMEWORK_VERDICTS[homework_status]
-    return(f'Изменился статус проверки работы "{homework_name}". {verdict}')
+    homework_name=homework_name
+    verdict=HOMEWORK_VERDICTS[homework_status]
+    return(f'Изменился статус проверки работы "{homework_name}". {verdict}').format(
+        homework_name=homework_name,
+        verdict=HOMEWORK_VERDICTS[homework_status]
+    )
 
 
 def main():
     """Основная логика работы бота."""
+    if not check_tokens():
+        logging.critical('Отсутствует переменные')
+        sys.exit('Отсутсвуют переменные окружения')
     logging.debug('Бот работает')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
