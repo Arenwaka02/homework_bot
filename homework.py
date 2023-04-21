@@ -95,7 +95,7 @@ def parse_status(homework):
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        logging.critical('Отсутствует переменные')
+        logging.CRITICAL('Отсутствует переменные')
         sys.exit('Отсутсвуют переменные окружения')
     logging.debug('Бот работает')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
@@ -105,7 +105,7 @@ def main():
     while True:
         try:
             response = get_api_answer(timestamp)
-            homeworks = check_response(response)
+            homeworks = check_response(response)[0]
             if not homeworks or homeworks == current_report:
                 logging.debug('Новый статус проверки не появился')
             else:
