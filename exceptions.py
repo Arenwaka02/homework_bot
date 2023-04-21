@@ -6,4 +6,6 @@ class NotForSending(Exception):
 class MyTelegramError(Exception):
     pass
 
- 
+
+class MyTelegramError(Exception):
+    pass 

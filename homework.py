@@ -4,6 +4,7 @@ import sys
 import time
 from http import HTTPStatus
 
+import exceptions
 import requests
 import telegram
 from dotenv import load_dotenv
@@ -24,6 +25,8 @@ HOMEWORK_VERDICTS = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
+
+LAST_PROJECT = [0]
 
 
 logger = logging.getLogger(__name__)
@@ -79,17 +82,31 @@ def check_response(response):
 
 def parse_status(homework):
     """Извлекает из информации о конкретной домашней работе статус."""
-    if 'homework_name' not in homework:
-        raise KeyError('Ошибка в получении имени')
-    if 'status' not in homework:
-        raise KeyError('Ошибка в получении имени')
-    homework_name = homework['homework_name']
-    homework_status = homework['status']
-    if homework_status not in HOMEWORK_VERDICTS:
-        raise ValueError('Такого статуса в я нету')
-    verdict = HOMEWORK_VERDICTS[homework_status]
-    logging.info('Изменился статус проверки работы')
-    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+    try:
+        status = homework['status']
+        verdict = HOMEWORK_VERDICTS[status]
+        logging.debug(f'Статус работы: {status}')
+    except KeyError as error:
+        logging.error(f'Неверный статус домашних заданий {error}')
+        raise f'Данные "статус" не найден, {error}'
+    try:
+        homework_name = homework['homework_name']
+        logging.debug(f'Имя работы {homework_name}')
+    except Exception as error:
+        logging.error(f'не корректное имя {error}')
+        raise f'Имя не корректно {error}'
+    if homework.get('homework_name') is None:
+        logging.error('Ключ "homework_name" не найден')
+        raise KeyError('Ключ "homework_name" не найден')
+    try:
+        message = f'Изменился статус проверки работы "{homework_name}". ' \
+                  f'{verdict}'
+        if type(message) == str:
+            logging.debug(type(message))
+            return message
+    except Exception as error:
+        logging.error(f'return not string {error}, {type(message)}')
+        raise f'return not string {error}, {status}, {type(message)}'
 
 
 def main():
@@ -100,25 +117,27 @@ def main():
     logging.debug('Бот работает')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
-    current_report = []
-    prev_report = ''
+    anti_spam_check = ''
     while True:
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)[0]
-            if not homeworks or homeworks == current_report:
-                logging.debug('Новый статус проверки не появился')
+            sending_message = parse_status(homeworks[LAST_PROJECT])
+            if sending_message != anti_spam_check:
+                logging.debug(f'Новый статус {sending_message}')
+
+                if send_message(bot, sending_message):
+                    logging.debug(f'Статус {sending_message}')
+                    anti_spam_check = sending_message
             else:
-                message = parse_status(homeworks[0])
-                if message:
-                    send_message(bot, message)
-                    current_report = homeworks
+                logging.debug('No changes')
+            timestamp = response.get('current_date', timestamp)
         except Exception as error:
             message = f'Ошибка в работе {error}'
             logging.error(message)
-            if message != prev_report:
-                send_message(bot, message)
-                prev_report = message
+            if message != anti_spam_check:
+                if send_message(bot, message):
+                    anti_spam_check = message
         finally:
             time.sleep(RETRY_PERIOD)
 
