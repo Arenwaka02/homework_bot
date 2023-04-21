@@ -1,8 +1,8 @@
 import logging
 import os
 import sys
-from http import HTTPStatus
 import time
+from http import HTTPStatus
 
 import requests
 import telegram
@@ -25,17 +25,12 @@ HOMEWORK_VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
-current_timestamp = 1681707645
-timestamp = 1681707645
+
+logger = logging.getLogger(__name__)
 
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    TOKEN = {
-        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
-        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
-        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
-    }
     return all([TELEGRAM_TOKEN, PRACTICUM_TOKEN, TELEGRAM_CHAT_ID])
 
 
@@ -43,18 +38,16 @@ def send_message(bot, message):
     """Отправляет сообщение в Telegram чат."""
     try:
         logging.info('Начало отправки')
-        message = bot.send_message(
-            chat_id=TELEGRAM_CHAT_ID,
-            text=message,
-        )
+        bot.send_message(TELEGRAM_CHAT_ID, message)
     except telegram.TelegramError as error:
         logging.error(f'Сообщение отправлено {error}')
     else:
-        logging.debug('Сообщение отправлено')
+        logging.debug(f'Сообщение отправлено {message}')
 
 
 def get_api_answer(timestamp):
     """Делает запрос к единственному эндпоинту API-сервиса."""
+    logging.debug('Отправляем запрос к эндпоинту API-сервиса')
     headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
     params = {'from_date': timestamp}
     try:
@@ -88,16 +81,15 @@ def parse_status(homework):
     """Извлекает из информации о конкретной домашней работе статус."""
     if 'homework_name' not in homework:
         raise KeyError('Ошибка в получении имени')
-    homework_name = homework.get('homework_name')
-    homework_status = homework.get('status')
+    if 'status' not in homework:
+        raise KeyError('Ошибка в получении имени')
+    homework_name = homework['homework_name']
+    homework_status = homework['status']
     if homework_status not in HOMEWORK_VERDICTS:
         raise ValueError('Такого статуса в я нету')
-    homework_name=homework_name
-    verdict=HOMEWORK_VERDICTS[homework_status]
-    return(f'Изменился статус проверки работы "{homework_name}". {verdict}').format(
-        homework_name=homework_name,
-        verdict=HOMEWORK_VERDICTS[homework_status]
-    )
+    verdict = HOMEWORK_VERDICTS[homework_status]
+    logging.info('Изменился статус проверки работы')
+    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
@@ -107,33 +99,32 @@ def main():
         sys.exit('Отсутсвуют переменные окружения')
     logging.debug('Бот работает')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
-    current_report = {}
-    prev_report = {}
+    timestamp = int(time.time())
+    current_report = []
+    prev_report = ''
     while True:
         try:
-            response = get_api_answer(current_timestamp)
-            homework = check_response(response)[0]
-            if homework:
-                message = parse_status(homework)
-                current_report[
-                    response.get('homework_name')] = response.get('status')
-                if current_report != prev_report:
+            response = get_api_answer(timestamp)
+            homeworks = check_response(response)
+            if not homeworks or homeworks == current_report:
+                logging.debug('Новый статус проверки не появился')
+            else:
+                message = parse_status(homeworks[0])
+                if message:
                     send_message(bot, message)
-                    prev_report = current_report.copy()
-                    current_report[
-                        response.get('homework_name')] = response.get('status')
-                else:
-                    logging.debug('Статус не поменялся')
+                    current_report = homeworks
         except Exception as error:
             message = f'Ошибка в работе {error}'
             logging.error(message)
+            if message != prev_report:
+                send_message(bot, message)
+                prev_report = message
         finally:
             time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s, %(levelname)s, %(message)s'
                         )
     main()
