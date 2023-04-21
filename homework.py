@@ -95,7 +95,7 @@ def parse_status(homework):
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        logging.CRITICAL('Отсутствует переменные')
+        logging.critical('Отсутствует переменные')
         sys.exit('Отсутсвуют переменные окружения')
     logging.debug('Бот работает')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
