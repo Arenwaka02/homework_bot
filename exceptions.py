@@ -1,50 +1,23 @@
-<<<<<<< HEAD
 class BaseException(Exception):
     """Базовое исключение."""
-
-    code_default: int = 0
-
-    def __init__(self, message: str, code: int or str):
-        self.message = message
-        self.code = code or self.code_default
+    pass
 
 
 class ResponseError(BaseException):
     """Не верный ответ на запрос к API."""
-
-    code_default: int = -2
     pass
 
 
 class UnknownStatusHomework(BaseException):
     """Неверный статус домашней работы."""
-
-    code_default: int = -3
     pass
 
 
 class MessegeError(BaseException):
     """Ошибка отправки сообщения бота."""
-
-    code_default: int = -4
     pass
 
 
 class CriticalTokkenError(BaseException):
     """Ошибка отправки сообщения бота."""
-
-    code_default: int = -1
     pass
-=======
-class NotForSending(Exception):
-    """Не для пересылки в телеграм."""
-    pass
-
-
-class MyTelegramError(Exception):
-    pass
-
-
-class MyTelegramError(Exception):
-    pass 
->>>>>>> 5a884f41e649351416ed540755182ff7fcc5bd5d
