@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 class BaseException(Exception):
     """Базовое исключение."""
 
@@ -34,3 +35,16 @@ class CriticalTokkenError(BaseException):
 
     code_default: int = -1
     pass
+=======
+class NotForSending(Exception):
+    """Не для пересылки в телеграм."""
+    pass
+
+
+class MyTelegramError(Exception):
+    pass
+
+
+class MyTelegramError(Exception):
+    pass 
+>>>>>>> 5a884f41e649351416ed540755182ff7fcc5bd5d
