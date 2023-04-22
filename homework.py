@@ -8,7 +8,12 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import MessegeError, ResponseError, UnknownStatusHomework
+from exceptions import (
+    CriticalTokkenError,
+    MessegeError,
+    ResponseError,
+    UnknownStatusHomework,
+)
 
 RETRY_PERIOD = 600
 
@@ -41,7 +46,12 @@ HEADERS = {"Authorization": f"OAuth {PRACTICUM_TOKEN}"}
 
 def check_tokens():
     """Проверка переменных окружения."""
-    return all([TELEGRAM_TOKEN, PRACTICUM_TOKEN, TELEGRAM_CHAT_ID])
+    try:
+        for name in TOKEN_NAMES:
+            if not globals()[name]:
+                raise CriticalTokkenError(f"Неверно определенно: {name}")
+    except NameError as error:
+        raise CriticalTokkenError(error)
 
 
 def send_message(bot, message):
@@ -105,10 +115,12 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-    logging.debug('Бот работает')
-    if not check_tokens():
-        logging.critical('Отсутствует переменные')
-        sys.exit('Отсутсвуют переменные окружения')
+    logging.debug("Бот работает")
+    try:
+        check_tokens()
+    except Exception as error:
+        logger.critical(f"Критическая ошибка:{error}")
+        sys.exit("Отсутсвуют переменные окружения")
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
