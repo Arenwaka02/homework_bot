@@ -8,12 +8,8 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import (
-    CriticalTokkenError,
-    MessegeError,
-    ResponseError,
-    UnknownStatusHomework,
-)
+from exceptions import (CriticalTokkenError, MessegeError, ResponseError,
+                        UnknownStatusHomework)
 
 RETRY_PERIOD = 600
 
@@ -38,9 +34,9 @@ TOKEN_NAMES = (
 logger = logging.getLogger(__name__)
 load_dotenv()
 
-PRACTICUM_TOKEN = os.getenv("YP_TOKEN")
+PRACTICUM_TOKEN = os.getenv("PRACTICUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HEADERS = {"Authorization": f"OAuth {PRACTICUM_TOKEN}"}
 
 
