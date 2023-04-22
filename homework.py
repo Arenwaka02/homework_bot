@@ -1,20 +1,15 @@
 import logging
 import os
-import requests
 import sys
-import telegram
 import time
-
-from dotenv import load_dotenv
-from exceptions import (
-    CriticalTokkenError,
-    MessegeError,
-    ResponseError,
-    UnknownStatusHomework,
-)
 from http import HTTPStatus
-from logging.handlers import RotatingFileHandler
 
+import requests
+import telegram
+from dotenv import load_dotenv
+
+from exceptions import (MessegeError, ResponseError,
+                        UnknownStatusHomework)
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -44,28 +39,25 @@ TOKEN_NAMES = (
     "TELEGRAM_CHAT_ID",
 )
 
-def check_tokens() -> None:
+
+def check_tokens():
     """Проверка переменных окружения."""
-    try:
-        for name in TOKEN_NAMES:
-            if not globals()[name]:
-                raise CriticalTokkenError(f"Неверно определенно: {name}")
-    except NameError as error:
-        raise CriticalTokkenError(error)
+    return all([TELEGRAM_TOKEN, PRACTICUM_TOKEN, TELEGRAM_CHAT_ID])
 
 
-def send_message(bot: telegram.Bot, message: str) -> None:
+def send_message(bot: telegram.Bot, message: str):
     """Отправка сообщения в Telegram чат."""
     try:
+        logging.info('Начало отправки')
         bot.send_message(TELEGRAM_CHAT_ID, message)
-        logger.debug(f'Отправленно сообщение "{message}"', exc_info=True)
+        logger.debug(f'Отправленно сообщение "{message}"')
     except telegram.error.TelegramError:
         logger.exception(f'Ошибка при отправке сообщения "{message}"')
         raise MessegeError(f'Ошибка при отправке сообщения "{message}"')
 
 
-def get_api_answer(timestamp: int) -> dict:
-    """Запрос к единственному эндпоинту API-сервиса."""
+def get_api_answer(timestamp):
+    """Делает запрос к единственному эндпоинту API-сервиса."""
     PAYLOADS = {"from_date": timestamp}
     try:
         response = requests.get(
@@ -86,7 +78,7 @@ def get_api_answer(timestamp: int) -> dict:
     return response_json
 
 
-def check_response(response: dict) -> None:
+def check_response(response):
     """Проверка ответа API на соответствие документации."""
     equivalent = ("homeworks", "current_date")
     if not isinstance(response, dict):
@@ -114,11 +106,9 @@ def parse_status(homework: dict) -> str:
 
 def main() -> None:
     """Основная логика работы бота."""
-    try:
-        check_tokens()
-    except Exception as error:
-        logger.critical(f"Критическая ошибка:{error}", exc_info=True)
-        return -1
+    if not check_tokens():
+        logging.critical('Отсутствует переменные')
+        sys.exit('Отсутсвуют переменные окружения')
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
@@ -141,14 +131,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    logger.setLevel(logging.DEBUG)
-    streamHandler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-    streamHandler.setFormatter(formatter)
-    logger.addHandler(streamHandler)
-    handler = RotatingFileHandler(
-        "my_logger.log", maxBytes=500000, backupCount=5, encoding="utf-8"
-    )
-    logger.addHandler(handler)
-    handler.setFormatter(formatter)
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s, %(levelname)s, %(message)s'
+                        )
     main()
