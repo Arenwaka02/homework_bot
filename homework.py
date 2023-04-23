@@ -8,8 +8,7 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import (CriticalTokkenError, MessegeError, ResponseError,
-                        UnknownStatusHomework)
+from exceptions import CriticalTokkenError
 
 RETRY_PERIOD = 600
 
@@ -58,29 +57,25 @@ def send_message(bot, message):
         logger.debug(f'Отправленно сообщение "{message}"')
     except telegram.error.TelegramError:
         logger.exception(f'Ошибка при отправке сообщения "{message}"')
-        raise MessegeError(f'Ошибка при отправке сообщения "{message}"')
 
 
 def get_api_answer(timestamp):
     """Делает запрос к единственному эндпоинту API-сервиса."""
     PAYLOADS = {"from_date": timestamp}
+    headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
     try:
         response = requests.get(
-            ENDPOINT,
-            headers=HEADERS,
-            params=PAYLOADS,
-        )
-    except requests.exceptions as error:
-        raise requests.ConnectionError(error)
-    response_json = response.json()
-    if response.status_code != HTTPStatus.OK:
-        if set(response_json.keys()) == {'error', 'code'}:
-            raise ResponseError(
-                response_json.get('error').get('error'),
-                response_json.get('code')
-            )
-        raise ResponseError(f'Неверный ответ запрооса {response.status_code}')
-    return response_json
+            ENDPOINT, headers=headers, params=PAYLOADS)
+        logging.info('Запрос отправлен.')
+        if response.status_code != HTTPStatus.OK:
+            raise ConnectionError('Нету соеденения с сервером.')
+        if not isinstance(response.json(), dict):
+            raise TypeError('Не словарь')
+        else:
+            logging.info('Ответ от api ---- 200')
+            return response.json()
+    except Exception as error:
+        raise Exception(f'Ошибка {error}')
 
 
 def check_response(response):
@@ -104,9 +99,14 @@ def parse_status(homework):
     homework_name = homework.get("homework_name")
     status = homework.get("status")
     verdict = HOMEWORK_VERDICTS.get(status)
-    if homework_name and status in list(HOMEWORK_VERDICTS.keys()):
-        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-    raise UnknownStatusHomework(f'Неверный статус работы"{homework_name}"')
+    if 'homework_name' not in homework:
+        raise KeyError('Ошибка в получении имени')
+    if 'status' not in homework:
+        raise KeyError('Ошибка в получении имени')
+    if status not in HOMEWORK_VERDICTS:
+        raise ValueError('Такого статуса в я нету')
+    logging.info('Изменился статус проверки работы')
+    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
@@ -120,7 +120,7 @@ def main():
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
-
+    prev_report = ''
     while True:
         try:
             response = get_api_answer(timestamp)
@@ -132,8 +132,10 @@ def main():
                 timestamp = response.get("current_date")
         except Exception as error:
             message = f"Сбой в работе программы: {error}"
-            logging.exception(error)
-            send_message(bot, message)
+            logging.error(message)
+            if message != prev_report:
+                send_message(bot, message)
+                prev_report = message
         finally:
             time.sleep(RETRY_PERIOD)
 
