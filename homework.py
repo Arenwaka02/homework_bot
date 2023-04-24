@@ -8,7 +8,7 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import CriticalTokkenError
+from exceptions import CriticalTokkenError, ResponseError
 
 RETRY_PERIOD = 600
 
@@ -57,66 +57,68 @@ def send_message(bot, message):
         logger.debug(f'Отправленно сообщение "{message}"')
     except telegram.error.TelegramError:
         logger.exception(f'Ошибка при отправке сообщения "{message}"')
+    else:
+        logging.debug(f'Сообщение {message} успешно отправлено.')
 
 
 def get_api_answer(timestamp):
     """Делает запрос к единственному эндпоинту API-сервиса."""
-    PAYLOADS = {"from_date": timestamp}
+    PAYLOADS = {'from_date': timestamp}
     headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
     try:
         response = requests.get(
             ENDPOINT, headers=headers, params=PAYLOADS)
         logging.info('Запрос отправлен.')
         if response.status_code != HTTPStatus.OK:
-            raise ConnectionError('Нету соеденения с сервером.')
+            raise ConnectionError('Не удалось получить ответ от API,'
+                                  f'ошибка: {response.status_code}')
         if not isinstance(response.json(), dict):
-            raise TypeError('Не словарь')
-        else:
-            logging.info('Ответ от api ---- 200')
-            return response.json()
-    except Exception as error:
-        raise Exception(f'Ошибка {error}')
+            raise TypeError('Ответ не является словарем.')
+        logging.debug('Ответ от api === 200')
+        return response.json()
+    except requests.exceptions.RequestException as error:
+        raise ResponseError(f'Ошибка {error}')
 
 
 def check_response(response):
     """Проверка ответа API на соответствие документации."""
-    equivalent = ("homeworks", "current_date")
+    logging.debug('Начало проверки')
     if not isinstance(response, dict):
         raise TypeError(
-            f"Ответ не соответствует документации, {type(response)}"
+            f'Ответ не соответствует документации, {type(response)}'
         )
-    if not equivalent == tuple(response.keys()):
-        raise KeyError("Ответ содержит не верные ключи")
-    homeworks = response.get("homeworks")
+    if 'homeworks' not in response or 'current_date' not in response:
+        raise KeyError('Ответ содержит не верные ключи')
+    homeworks = response.get('homeworks')
     if not isinstance(homeworks, list):
         raise TypeError(
-            f"Ответ не соответствует документации, {type(homeworks)}"
+            f'Ответ не соответствует документации, {type(homeworks)}'
         )
 
 
 def parse_status(homework):
     """Извлечение статуса из информации о конкретной домашней работе."""
-    homework_name = homework.get("homework_name")
-    status = homework.get("status")
+    homework_name = homework.get('homework_name')
+    status = homework.get('status')
     verdict = HOMEWORK_VERDICTS.get(status)
     if 'homework_name' not in homework:
-        raise KeyError('Ошибка в получении имени')
+        raise KeyError('Ошибка в получении имени домашней работы.')
     if 'status' not in homework:
-        raise KeyError('Ошибка в получении имени')
+        raise KeyError('Ошибка в получении статуса работы.')
     if status not in HOMEWORK_VERDICTS:
-        raise ValueError('Такого статуса в я нету')
+        raise ValueError('Данный статус в HOMEWORK_VERDICTS не найден.')
     logging.info('Изменился статус проверки работы')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
     """Основная логика работы бота."""
-    logging.debug("Бот работает")
+    logging.debug('Бот работает.')
     try:
         check_tokens()
     except Exception as error:
-        logger.critical(f"Критическая ошибка:{error}")
-        sys.exit("Отсутсвуют переменные окружения")
+        logger.critical(f'Критическая ошибка:{error}.')
+        sys.exit('Отсутсвуют переменные окружения.')
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
@@ -125,13 +127,13 @@ def main():
         try:
             response = get_api_answer(timestamp)
             check_response(response)
-            homeworks = response.get("homeworks")
+            homeworks = response.get('homeworks')
             if homeworks:
                 message = parse_status(homeworks[0])
                 send_message(bot, message)
-                timestamp = response.get("current_date")
+                timestamp = response.get('current_date')
         except Exception as error:
-            message = f"Сбой в работе программы: {error}"
+            message = f'Сбой в работе программы: {error}'
             logging.error(message)
             if message != prev_report:
                 send_message(bot, message)
