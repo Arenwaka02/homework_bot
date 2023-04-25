@@ -39,6 +39,9 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HEADERS = {"Authorization": f"OAuth {PRACTICUM_TOKEN}"}
 
 
+headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
+
+
 def check_tokens():
     """Проверка переменных окружения."""
     try:
@@ -52,7 +55,7 @@ def check_tokens():
 def send_message(bot, message):
     """Отправка сообщения в Telegram чат."""
     try:
-        logging.info('Начало отправки')
+        logger.info('Начало отправки')
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.debug(f'Отправленно сообщение "{message}"')
     except telegram.error.TelegramError:
@@ -64,20 +67,18 @@ def send_message(bot, message):
 def get_api_answer(timestamp):
     """Делает запрос к единственному эндпоинту API-сервиса."""
     PAYLOADS = {'from_date': timestamp}
-    headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
     try:
         response = requests.get(
             ENDPOINT, headers=headers, params=PAYLOADS)
         logging.info('Запрос отправлен.')
-        if response.status_code != HTTPStatus.OK:
-            raise ConnectionError('Не удалось получить ответ от API,'
-                                  f'ошибка: {response.status_code}')
-        if not isinstance(response.json(), dict):
-            raise TypeError('Ответ не является словарем.')
-        logging.debug('Ответ от api === 200')
-        return response.json()
     except requests.exceptions.RequestException as error:
         raise ResponseError(f'Ошибка {error}')
+    if response.status_code != HTTPStatus.OK:
+        raise ConnectionError('Не удалось получить ответ от API,'
+                                  f'ошибка: {response.status_code}')
+    if not isinstance(response.json(), dict):
+        raise TypeError('Ответ не является словарем.')
+    return response.json()
 
 
 def check_response(response):
@@ -123,6 +124,8 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     prev_report = ''
+    prev_message = None
+    errors = True
     while True:
         try:
             response = get_api_answer(timestamp)
@@ -130,14 +133,18 @@ def main():
             homeworks = response.get('homeworks')
             if homeworks:
                 message = parse_status(homeworks[0])
-                send_message(bot, message)
-                timestamp = response.get('current_date')
+                if message != prev_message:
+                    send_message(bot, message)
+                    prev_message = message
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
-            if message != prev_report:
+            if errors:
+                errors = False
                 send_message(bot, message)
-                prev_report = message
+            #if message != prev_report:
+                #send_message(bot, message)
+                #prev_report = message
         finally:
             time.sleep(RETRY_PERIOD)
 
