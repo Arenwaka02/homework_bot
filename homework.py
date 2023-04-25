@@ -75,7 +75,7 @@ def get_api_answer(timestamp):
         raise ResponseError(f'Ошибка {error}')
     if response.status_code != HTTPStatus.OK:
         raise ConnectionError('Не удалось получить ответ от API,'
-                                  f'ошибка: {response.status_code}')
+                              f'ошибка: {response.status_code}')
     if not isinstance(response.json(), dict):
         raise TypeError('Ответ не является словарем.')
     return response.json()
@@ -123,7 +123,6 @@ def main():
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
-    prev_report = ''
     prev_message = None
     errors = True
     while True:
@@ -142,9 +141,6 @@ def main():
             if errors:
                 errors = False
                 send_message(bot, message)
-            #if message != prev_report:
-                #send_message(bot, message)
-                #prev_report = message
         finally:
             time.sleep(RETRY_PERIOD)
 
