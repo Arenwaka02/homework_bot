@@ -13,7 +13,7 @@ from exceptions import CriticalTokkenError, ResponseError
 RETRY_PERIOD = 600
 
 
-ENDPOINT = "https://practicum.yandex.ru/api/user_api/homework_statuses/"
+ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 
 
 HOMEWORK_VERDICTS = {
@@ -36,10 +36,9 @@ load_dotenv()
 PRACTICUM_TOKEN = os.getenv("PRACTICUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-HEADERS = {"Authorization": f"OAuth {PRACTICUM_TOKEN}"}
 
 
-headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
+HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 
 def check_tokens():
@@ -48,7 +47,7 @@ def check_tokens():
         for name in TOKEN_NAMES:
             if not globals()[name]:
                 raise CriticalTokkenError(f"Неверно определенно: {name}")
-    except NameError as error:
+    except KeyError as error:
         raise CriticalTokkenError(error)
 
 
@@ -61,7 +60,7 @@ def send_message(bot, message):
     except telegram.error.TelegramError:
         logger.exception(f'Ошибка при отправке сообщения "{message}"')
     else:
-        logging.debug(f'Сообщение {message} успешно отправлено.')
+        logger.debug(f'Сообщение {message} успешно отправлено.')
 
 
 def get_api_answer(timestamp):
@@ -69,15 +68,13 @@ def get_api_answer(timestamp):
     PAYLOADS = {'from_date': timestamp}
     try:
         response = requests.get(
-            ENDPOINT, headers=headers, params=PAYLOADS)
-        logging.info('Запрос отправлен.')
+            ENDPOINT, headers=HEADERS, params=PAYLOADS)
+        logger.info('Запрос отправлен.')
     except requests.exceptions.RequestException as error:
         raise ResponseError(f'Ошибка {error}')
     if response.status_code != HTTPStatus.OK:
         raise ConnectionError('Не удалось получить ответ от API,'
                               f'ошибка: {response.status_code}')
-    if not isinstance(response.json(), dict):
-        raise TypeError('Ответ не является словарем.')
     return response.json()
 
 
@@ -124,7 +121,7 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     prev_message = None
-    errors = True
+    prev_errors = True
     while True:
         try:
             response = get_api_answer(timestamp)
@@ -138,9 +135,9 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
-            if errors:
-                errors = False
+            if message != prev_errors:
                 send_message(bot, message)
+                prev_errors = message
         finally:
             time.sleep(RETRY_PERIOD)
 
