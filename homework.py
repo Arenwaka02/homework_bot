@@ -29,6 +29,7 @@ TOKEN_NAMES = (
     "TELEGRAM_CHAT_ID",
 )
 
+""" Примите пж))) уже не могу)))."""
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -105,13 +106,13 @@ def parse_status(homework):
         raise KeyError('Ошибка в получении статуса работы.')
     if status not in HOMEWORK_VERDICTS:
         raise ValueError('Данный статус в HOMEWORK_VERDICTS не найден.')
-    logging.info('Изменился статус проверки работы')
+    logger.info('Изменился статус проверки работы')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
     """Основная логика работы бота."""
-    logging.debug('Бот работает.')
+    logger.debug('Бот работает.')
     try:
         check_tokens()
     except Exception as error:
@@ -121,7 +122,6 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     prev_message = None
-    prev_errors = True
     while True:
         try:
             response = get_api_answer(timestamp)
@@ -135,9 +135,6 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
-            if message != prev_errors:
-                send_message(bot, message)
-                prev_errors = message
         finally:
             time.sleep(RETRY_PERIOD)
 
