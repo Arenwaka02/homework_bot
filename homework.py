@@ -62,6 +62,7 @@ def send_message(bot, message):
         logger.exception(f'Ошибка при отправке сообщения "{message}"')
     else:
         logger.debug(f'Сообщение {message} успешно отправлено.')
+        return True
 
 
 def get_api_answer(timestamp):
@@ -135,6 +136,8 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
+            if message != send_message:
+                send_message(bot, message)
         finally:
             time.sleep(RETRY_PERIOD)
 
