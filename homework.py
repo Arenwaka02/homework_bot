@@ -123,6 +123,7 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     prev_message = None
+    prev_errors = True
     while True:
         try:
             response = get_api_answer(timestamp)
@@ -135,9 +136,10 @@ def main():
                     prev_message = message
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            logging.error(message)
-            if message != send_message:
+            logger.error(message)
+            if message != prev_errors:
                 send_message(bot, message)
+                prev_errors = message
         finally:
             time.sleep(RETRY_PERIOD)
 
