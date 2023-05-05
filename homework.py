@@ -29,7 +29,7 @@ TOKEN_NAMES = (
     "TELEGRAM_CHAT_ID",
 )
 
-""" Примите пж))) уже не могу)))."""
+""" ( ・・)つ"""
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -138,7 +138,6 @@ def main():
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
             if message != prev_error:  # Если не равно посл
-                send_message(bot, message)  # Отправил
                 if send_message(bot, message):
                     prev_error = message  # Перезаписываем последнее новым
 
